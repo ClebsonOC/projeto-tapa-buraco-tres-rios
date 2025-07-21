@@ -3,22 +3,19 @@ require("dotenv").config();
 
 // Credenciais e IDs
 const FOLDER_ID = process.env.FOLDER_ID;
+// A LINHA PHOTOS_SUBFOLDER_NAME FOI REMOVIDA DAQUI
 const SHEET_ID = process.env.SHEET_ID;
 const RUAS_MUNICIPIOS_SHEET_ID = process.env.RUAS_MUNICIPIOS_SHEET_ID;
 
-// ==================================================================
-// ALTERAÇÕES APLICADAS AQUI
-// Alteramos o nome do município e das abas para refletir a nova cidade.
-// ==================================================================
+// Configurações da Planilha de Ruas e Bairros
 const NOME_ABA_DADOS_RUAS = "LOGRADOUROS DE TRÊS RIOS";
 const COLUNA_MUNICIPIO_DADOS_RUAS = "Municipio";
 const COLUNA_RUA_DADOS_RUAS = "Rua";
-const MUNICIPIO_FILTRO_DADOS_RUAS = "Três Rios"; // <-- Alterado de "Nova Iguaçu"
+const MUNICIPIO_FILTRO_DADOS_RUAS = "Três Rios";
 const MAX_SUGESTOES_RUAS = 10;
 
 const NOME_ABA_DADOS_BAIRROS = "BAIRROS DE TRÊS RIOS";
 const COLUNA_BAIRRO_DADOS = "Bairro";
-
 
 // Configurações de Cache
 const CACHE_EXPIRATION_RUAS_MS = 3600 * 1000; // 1 hora
@@ -53,6 +50,7 @@ const CABECALHO_PADRAO = [
 
 module.exports = {
   FOLDER_ID,
+  // A EXPORTAÇÃO DE PHOTOS_SUBFOLDER_NAME FOI REMOVIDA DAQUI
   SHEET_ID,
   RUAS_MUNICIPIOS_SHEET_ID,
   NOME_ABA_DADOS_RUAS,

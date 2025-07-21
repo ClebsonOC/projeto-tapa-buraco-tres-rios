@@ -74,7 +74,13 @@ async function uploadFiles(files, rua, dataHoje, username = 'desconhecido') {
     
     const uploadedFileDetails = [];
     const nomesArquivosSalvosNaPasta = new Set();
+    
+    // ==================================================================
+    // ALTERAÇÃO APLICADA AQUI
+    // A pasta da rua agora é criada diretamente dentro da pasta principal (FOLDER_ID).
     const pastaRuaId = await getOrCreateFolder(rua, config.FOLDER_ID);
+    // ==================================================================
+
     const nomePastaData = dataHoje.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" }).replace(/\//g, ".");
     const pastaDataId = await getOrCreateFolder(nomePastaData, pastaRuaId);
 
@@ -111,11 +117,6 @@ async function uploadFiles(files, rua, dataHoje, username = 'desconhecido') {
 let cacheRuas = null;
 let cacheBairros = null;
 
-// ==================================================================
-// ALTERAÇÕES APLICADAS AQUI
-// 1. Função renomeada de getRuasNovaIguacuComCache para getRuasComCache.
-// 2. Filtro do município agora usa a variável do arquivo config.js.
-// ==================================================================
 async function getRuasComCache() {
     if (cacheRuas) return cacheRuas;
     try {
@@ -129,7 +130,6 @@ async function getRuasComCache() {
         
         const ruasFiltradas = lines.slice(1).map(line => {
             const columns = line.split('\t');
-            // AGORA USA A CONFIGURAÇÃO PARA FILTRAR
             if (columns[idxMunicipio]?.trim() === config.MUNICIPIO_FILTRO_DADOS_RUAS) {
                 return columns[idxRua]?.trim() || null;
             }
@@ -144,10 +144,6 @@ async function getRuasComCache() {
     }
 }
 
-// ==================================================================
-// ALTERAÇÃO APLICADA AQUI
-// - Função renomeada de getBairrosNovaIguacuComCache para getBairrosComCache.
-// ==================================================================
 async function getBairrosComCache() {
     if (cacheBairros) return cacheBairros;
     try {
@@ -169,6 +165,6 @@ async function getBairrosComCache() {
 module.exports = {
   getDriveClient,
   uploadFiles,
-  getRuasComCache,      // Exporta a função com novo nome
-  getBairrosComCache,   // Exporta a função com novo nome
+  getRuasComCache,
+  getBairrosComCache,
 };
