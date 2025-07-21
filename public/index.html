@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tapa Buracos - Novo Registro</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#007bff">
+
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/index.css">
+</head>
+
+<body>
+    <nav class="main-nav">
+        <a href="/index.html" class="nav-brand"><img src="/images/logo.png" alt="Logo Lytorânea Construtora"></a>
+        <div class="nav-links">
+            <a href="/index.html" class="active">Novo Registro</a>
+            <a href="/relatorio.html">Relatórios</a>
+            <a href="/efetivo.html">Efetivo</a>
+        </div>
+        <div class="user-info">
+            <span>Logado como:&nbsp;</span><strong id="user-display-name"></strong>
+            <button id="logoutBtn">Sair</button>
+        </div>
+        <button class="nav-toggle" aria-label="Abrir menu">☰</button>
+    </nav>
+
+    <div class="container">
+        <h1>Tapa Buracos - Três Rios</h1>
+
+        <div class="form-row">
+            <div class="form-column">
+                <label for="ruaInput">1.1 Digite ou selecione o nome da rua:</label>
+                <input type="text" id="ruaInput" name="ruaInput" autocomplete="off" placeholder="Ex: Rua Dom Adriano (mín. 2 letras)">
+                <div id="sugestoes" style="display:none;"></div>
+            </div>
+            <div class="form-column">
+                <label for="bairroSelect">1.2 Selecione o Bairro:</label>
+                <select id="bairroSelect" name="bairroSelect">
+                    <option value="">Carregando bairros...</option>
+                </select>
+            </div>
+        </div>
+
+        <h2>2. Registre os Buracos para a Rua Selecionada</h2>
+        <div id="buracosContainer"></div>
+        <button type="button" id="addBuracoBtn">Adicionar Novo Buraco</button>
+
+        <h2>3. Condição do Tempo</h2>
+        <div class="tempo-container">
+            <input type="radio" id="tempoBom" name="condicaoTempo" value="Bom" checked>
+            <label for="tempoBom">Bom</label>
+
+            <input type="radio" id="tempoNublado" name="condicaoTempo" value="Nublado">
+            <label for="tempoNublado">Nublado</label>
+
+            <input type="radio" id="tempoChuva" name="condicaoTempo" value="Chuva">
+            <label for="tempoChuva">Chuva</label>
+        </div>
+        
+        <h2>4. Observações (Opcional)</h2>
+        <div class="observacao-group">
+            <label for="observacaoInput">Detalhes da obsevação:</label>
+            <textarea id="observacaoInput" rows="4" placeholder="Ex: Considerar espessura como..."></textarea>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px;">
+            <button type="button" id="salvarTudoBtn">Salvar Dados dos Buracos</button>
+            <div class="spinner" id="loadingSpinner"></div>
+        </div>
+        <div id="statusSalvar"></div>
+    </div>
+    <div id="success-overlay" class="success-overlay">
+        <div class="success-content">
+            <div class="success-checkmark">
+                <div class="checkmark-stem"></div>
+                <div class="checkmark-kick"></div>
+            </div>
+            <p>Salvo com Sucesso!</p>
+        </div>
+    </div>
+    <script src="/js/auth.js" defer></script>
+    <script src="/js/index.js" defer></script>
+</body>
+
+</html>

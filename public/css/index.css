@@ -1,0 +1,197 @@
+/* public/css/index.css */
+
+/* --- LAYOUT E CONTAINER --- */
+.container {
+    max-width: 800px;
+    margin: 30px auto;
+    background-color: var(--fundo-container);
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: var(--sombra-suave);
+    box-sizing: border-box;
+}
+@media (max-width: 768px) { .container { padding: 20px; margin-top: 20px; } }
+
+/* --- TÍTULOS E SEÇÕES --- */
+h1, h2 { color: var(--texto-titulo); text-align: center; }
+h1 { margin-bottom: 30px; font-size: 2em; font-weight: 700; }
+h2 { font-size: 1.5em; font-weight: 600; margin-top: 40px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--borda-cor); }
+
+/* --- FORMULÁRIOS E INPUTS --- */
+label { display: block; margin-top: 15px; margin-bottom: 8px; font-weight: 600; font-size: 0.9em; color: var(--texto-label); text-transform: uppercase; }
+input[type="text"], input[type="file"], select, textarea {
+    width: 100%; padding: 12px 15px; border: 1px solid var(--borda-cor); border-radius: 8px; box-sizing: border-box; font-size: 1rem; background-color: #fcfdff; transition: border-color 0.2s, box-shadow 0.2s;
+}
+input[type="text"]:focus, select:focus, textarea:focus {
+    outline: none; border-color: var(--cor-primaria); box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+.form-row { display: flex; flex-wrap: wrap; gap: 25px; }
+.form-column { flex: 1; min-width: 250px; }
+
+/* --- SUGESTÕES DE AUTOCOMPLETE (VISUAL PROFISSIONAL) --- */
+#sugestoes {
+    border: 1px solid var(--borda-cor);
+    border-top: none;
+    max-height: 210px;
+    overflow-y: auto;
+    margin-top: -8px; /* Encosta no input */
+    padding: 5px 0;
+    background-color: var(--fundo-container);
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 900;
+}
+.sugestao-item {
+    padding: 12px 15px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+}
+.sugestao-item:hover { background-color: #f4f7f6; }
+.sugestao-item.active { background-color: var(--cor-primaria); color: white; } /* Para navegação com teclado */
+
+/* --- BOTÕES DE RÁDIO CUSTOMIZADOS --- */
+.tempo-container { display: flex; justify-content: center; gap: 15px; flex-wrap: wrap; margin-top: 10px; }
+.tempo-container input[type="radio"] { display: none; }
+.tempo-container label {
+    padding: 12px 25px; border: 2px solid var(--borda-cor); border-radius: 50px; cursor: pointer; transition: all 0.2s ease-in-out; font-weight: 600;
+}
+.tempo-container label:hover { border-color: var(--cor-primaria); }
+.tempo-container input[type="radio"]:checked + label {
+    background-color: var(--cor-primaria); color: white; border-color: var(--cor-primaria);
+}
+
+/* --- BOTÕES DE AÇÃO --- */
+button {
+    background-color: var(--cor-primaria); color: white; padding: 12px 22px; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; font-weight: 600; margin: 10px 5px 0 5px; transition: background-color 0.2s, transform 0.1s;
+}
+button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+#addBuracoBtn { background-color: var(--cor-info); }
+#salvarTudoBtn { background-color: var(--cor-sucesso); font-size: 1.1em; }
+.remove-buraco-btn { background-color: var(--cor-perigo); font-size: 0.8em; padding: 8px 12px; margin: 0; }
+
+/* --- OUTROS --- */
+.buraco-entry { border: 1px solid var(--borda-cor); padding: 20px; margin-top: 15px; border-radius: 8px; background-color: #fdfdfd; }
+#statusSalvar { margin-top: 20px; font-weight: bold; text-align: center; padding: 12px; border-radius: 6px; }
+#statusSalvar.success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+#statusSalvar.error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.spinner { border: 4px solid rgba(0,0,0,0.1); width: 24px; height: 24px; border-radius: 50%; border-left-color: #007bff; animation: spin 1s ease infinite; display: none; margin: 10px auto; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* --- NOVO: Estilo para o campo de observação, copiado do efetivo.css --- */
+.observacao-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    color: var(--texto-label, #7f8c8d);
+}
+.observacao-group textarea {
+    width: 100%;
+    min-height: 80px;
+    padding: 10px;
+    font-size: 1em;
+    border-radius: 6px;
+    border: 1px solid var(--borda-cor, #dee2e6);
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+
+/* --- ESTILOS DO POPUP DE SUCESSO --- */
+.success-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.success-overlay.active {
+    display: flex;
+    opacity: 1;
+}
+
+.success-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 50%;
+    width: 180px;
+    height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    transform: scale(0.8);
+    transition: transform 0.3s ease;
+}
+
+.success-overlay.active .success-content {
+    transform: scale(1);
+}
+
+.success-content p {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--texto-titulo);
+    margin-top: 15px;
+    margin-bottom: 0;
+    text-align: center;
+}
+
+/* --- ÍCONE DE CHECK FEITO COM CSS --- */
+.success-checkmark {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: block;
+    stroke-width: 2;
+    stroke: #fff;
+    stroke-miterlimit: 10;
+    margin: 0 auto;
+    box-shadow: inset 0px 0px 0px var(--cor-sucesso, #2ecc71);
+    animation: fill .4s ease-in-out .4s forwards, scale .3s ease-in-out .9s both;
+}
+
+.success-checkmark div {
+    height: 5px;
+    background: #fff;
+    display: block;
+    border-radius: 5px;
+    position: absolute;
+    z-index: 10;
+}
+
+.success-checkmark .checkmark-stem {
+    width: 5px;
+    height: 25px;
+    transform: rotate(45deg);
+    top: 46px;
+    left: 38px;
+}
+
+.success-checkmark .checkmark-kick {
+    width: 45px;
+    transform: rotate(-45deg);
+    top: 38px;
+    left: 8px;
+}
+
+@keyframes scale {
+    0%, 100% { transform: none; }
+    50% { transform: scale3d(1.1, 1.1, 1); }
+}
+
+@keyframes fill {
+    100% { box-shadow: inset 0px 0px 0px 80px var(--cor-sucesso, #2ecc71); }
+}

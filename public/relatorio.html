@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Registros - Nova Iguaçu</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/relatorio.css">
+    <script src="/js/dexie.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
+    
+    <!-- BIBLIOTECAS PDF (Ordem corrigida) -->
+    <!-- 1. Carrega a biblioteca principal jsPDF -->
+    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <!-- 2. Carrega o plugin AutoTable, que se anexa à biblioteca principal -->
+    <script src="https://unpkg.com/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.js"></script>
+
+</head>
+
+<body>
+    <nav class="main-nav">
+        <a href="/index.html" class="nav-brand"><img src="/images/logo.png" alt="Logo Lytorânea Construtora"></a>
+        <div class="nav-links">
+            <a href="/index.html">Novo Registro</a>
+            <a href="/relatorio.html" class="active">Relatórios</a>
+            <a href="/efetivo.html">Efetivo</a>
+        </div>
+        <div class="user-info">
+            <span>Logado como:&nbsp;</span><strong id="user-display-name"></strong>
+            <button id="logoutBtn">Sair</button>
+        </div>
+        <button class="nav-toggle" aria-label="Abrir menu">☰</button>
+    </nav>
+
+    <div class="container">
+        <h1>Relatório de Registros</h1>
+
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="filtro-rua">Pesquisar por Rua</label>
+                <input type="text" id="filtro-rua" placeholder="Digite o nome da rua para filtrar a visualização...">
+            </div>
+            <div class="filter-group">
+                 <!-- Botão para gerar o PDF -->
+                <button id="gerar-pdf-btn">Gerar Relatório PDF</button>
+            </div>
+        </div>
+
+        <div id="loading">Carregando dados...</div>
+        <table>
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Data</th>
+                    <th>Rua</th>
+                    <th>Bairro</th>
+                    <th>Registrado Por</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody id="report-table-body">
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal de Seleção de Data -->
+    <div id="date-modal-overlay" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Selecionar Data do Relatório</h2>
+            <p>Escolha a data para gerar um relatório de todas as ruas.</p>
+            <input type="date" id="modal-date-input">
+            <div class="modal-actions">
+                <button id="modal-cancel-btn">Cancelar</button>
+                <button id="modal-confirm-btn">Gerar PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p>Enviando fotos...</p>
+        </div>
+    </div>
+
+    <div id="lightbox-overlay" class="lightbox-overlay">
+        <span class="lightbox-close" onclick="closeLightbox()">&times;</span>
+        <div id="lightbox-spinner" class="spinner" style="display: none;"></div>
+        <img class="lightbox-content" id="lightbox-img">
+    </div>
+
+    <script src="/js/auth.js" defer></script>
+    <script src="/js/relatorio.js" defer></script>
+</body>
+
+</html>

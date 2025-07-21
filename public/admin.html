@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administração - Tapa Buracos</title>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+
+<body>
+    <nav class="main-nav">
+        <a href="/index.html" class="nav-brand"><img src="/images/logo.png" alt="Logo Lytorânea Construtora"></a>
+        <div class="nav-links">
+            <a href="/admin.html" class="active">Administração</a>
+        </div>
+        <div class="user-info">
+            <span>Logado como:&nbsp;</span><strong id="user-display-name"></strong>
+            <button id="logoutBtn">Sair</button>
+        </div>
+        <button class="nav-toggle" aria-label="Abrir menu">☰</button>
+    </nav>
+
+    <div class="container">
+        <h1>Painel de Administração</h1>
+        <p>Visualize os registros de tapa-buracos e o efetivo diário de todos os usuários.</p>
+
+        <div class="filter-bar">
+            <div class="filter-group">
+                <label for="filtro-usuario">Filtrar por Usuário:</label>
+                <select id="filtro-usuario">
+                    <option value="todos">Todos os Usuários</option>
+                </select>
+            </div>
+            <!-- INÍCIO: Filtros de data adicionados -->
+            <div class="filter-group">
+                <label for="filtro-data-inicio">Data Inicial:</label>
+                <input type="date" id="filtro-data-inicio">
+            </div>
+            <div class="filter-group">
+                <label for="filtro-data-fim">Data Final:</label>
+                <input type="date" id="filtro-data-fim">
+            </div>
+            <!-- FIM: Filtros de data adicionados -->
+            <div class="filter-group">
+                <label>Filtrar por Tipo de Lançamento:</label>
+                <div class="view-filter-buttons">
+                    <button class="filter-btn active" data-filter="todos">Todos</button>
+                    <button class="filter-btn" data-filter="buraco">Lançamento Ruas</button>
+                    <button class="filter-btn" data-filter="efetivo">Efetivo</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading">Carregando dados...</div>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Data</th>
+                        <th>Usuário</th>
+                        <th>Tipo de Registro</th>
+                        <th>Resumo</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-table-body">
+                </tbody>
+            </table>
+        </div>
+        <!-- O botão "Carregar Mais" será inserido aqui pelo admin.js -->
+    </div>
+    
+    <div id="lightbox-overlay" class="lightbox-overlay">
+        <span class="lightbox-close">&times;</span>
+        <div id="lightbox-spinner" class="spinner" style="display: none;"></div>
+        <img class="lightbox-content" id="lightbox-img">
+    </div>
+
+    <script src="/js/auth.js" defer></script>
+    <script src="/js/admin.js" defer></script>
+</body>
+
+</html>

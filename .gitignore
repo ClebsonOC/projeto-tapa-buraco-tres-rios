@@ -1,0 +1,10 @@
+node_modules
+credentials.json
+uploads
+.env
+00. Backup/
+01. Obsoleto/
+firebase-credentials.json
+serviceAccountKey.json
+token.json
+authorize.js
