@@ -1,7 +1,7 @@
 {
-  "name": "Tapa Buracos - Nova Iguaçu",
-  "short_name": "TapaBuracosNI",
-  "description": "Aplicativo para registro de tapa buracos em Nova Iguaçu.",
+  "name": "Tapa Buracos - Três Rios",
+  "short_name": "TapaBuracos - Três Rios",
+  "description": "Aplicativo para registro de tapa buracos em Três Rios.",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#f0f2f5",
