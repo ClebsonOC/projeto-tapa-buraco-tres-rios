@@ -10,10 +10,8 @@
     <script src="/js/dexie.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/browser-image-compression@2.0.2/dist/browser-image-compression.js"></script>
     
-    <!-- BIBLIOTECAS PDF (Ordem corrigida) -->
-    <!-- 1. Carrega a biblioteca principal jsPDF -->
+    <!-- BIBLIOTECAS PDF -->
     <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <!-- 2. Carrega o plugin AutoTable, que se anexa à biblioteca principal -->
     <script src="https://unpkg.com/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.js"></script>
 
 </head>
@@ -36,6 +34,9 @@
     <div class="container">
         <h1>Relatório de Registros</h1>
 
+        <!-- ================================================================== -->
+        <!-- CORREÇÃO APLICADA AQUI: Barra de filtros simplificada -->
+        <!-- ================================================================== -->
         <div class="filter-bar">
             <div class="filter-group">
                 <label for="filtro-rua">Pesquisar por Rua</label>
@@ -64,7 +65,7 @@
         </table>
     </div>
 
-    <!-- Modal de Seleção de Data -->
+    <!-- Modal de Seleção de Data para PDF -->
     <div id="date-modal-overlay" class="modal-overlay">
         <div class="modal-content">
             <h2>Selecionar Data do Relatório</h2>
@@ -77,6 +78,7 @@
         </div>
     </div>
 
+    <!-- Overlays de Loading e Lightbox (sem alterações) -->
     <div id="loading-overlay" class="loading-overlay">
         <div class="loading-content">
             <div class="spinner"></div>

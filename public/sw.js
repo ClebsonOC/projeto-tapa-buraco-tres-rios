@@ -2,8 +2,8 @@
 
 importScripts('/js/dexie.js');
 
-// Versão incrementada para v21 para implementar a nova estratégia de cache.
-const APP_CACHE_NAME = 'tapa-buracos-Tres-Rios-cache-v21';
+// Versão incrementada para v22 para implementar mudanças em geral.
+const APP_CACHE_NAME = 'tapa-buracos-Tres-Rios-cache-v22';
 const PHOTO_CACHE_NAME = 'tapa-buracos-photo-cache-v2';
 
 const URLS_TO_CACHE = [

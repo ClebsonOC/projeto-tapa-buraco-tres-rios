@@ -14,30 +14,30 @@ db.version(3).stores({
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    const filtroRua = document.getElementById('filtro-rua');
+    // Elementos da página
+    const filtroRuaInput = document.getElementById('filtro-rua');
     const gerarPdfBtn = document.getElementById('gerar-pdf-btn');
     
-    // Modal elements
+    // Elementos do Modal
     const dateModalOverlay = document.getElementById('date-modal-overlay');
     const modalConfirmBtn = document.getElementById('modal-confirm-btn');
     const modalCancelBtn = document.getElementById('modal-cancel-btn');
     const modalDateInput = document.getElementById('modal-date-input');
 
-    if (filtroRua) filtroRua.addEventListener('keyup', () => renderizarTabela());
+    // Filtro de rua agora é aplicado dinamicamente na tabela já carregada
+    if (filtroRuaInput) filtroRuaInput.addEventListener('keyup', () => renderizarTabela());
     
-    // PDF button opens the modal
+    // Evento para abrir o modal do PDF
     if (gerarPdfBtn) gerarPdfBtn.addEventListener('click', () => {
-        // Set default date in modal to today
         const today = new Date();
         const yyyy = today.getFullYear();
         const mm = String(today.getMonth() + 1).padStart(2, '0');
         const dd = String(today.getDate()).padStart(2, '0');
         modalDateInput.value = `${yyyy}-${mm}-${dd}`;
-        
         dateModalOverlay.classList.add('active');
     });
 
-    // Modal buttons events
+    // Eventos dos botões do modal
     if (modalCancelBtn) modalCancelBtn.addEventListener('click', () => dateModalOverlay.classList.remove('active'));
     if (modalConfirmBtn) modalConfirmBtn.addEventListener('click', () => {
         const selectedDate = modalDateInput.value;
@@ -45,12 +45,11 @@ document.addEventListener('DOMContentLoaded', function() {
             alert("Por favor, selecione uma data.");
             return;
         }
-        // A função agora é assíncrona e lida com o carregamento
         gerarPDF(selectedDate); 
         dateModalOverlay.classList.remove('active');
     });
 
-
+    // Evento do Lightbox
     const lightbox = document.getElementById('lightbox-overlay');
     if (lightbox) {
         lightbox.addEventListener('click', (e) => {
@@ -60,6 +59,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Botão de carregar mais
     const container = document.querySelector('.container');
     loadMoreButton = document.createElement('button');
     loadMoreButton.id = 'loadMoreBtn';
@@ -70,20 +70,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     iniciarCarregamentoDeDados();
 
-    // ### CORREÇÃO APLICADA AQUI ###
+    // Listener para atualizações do Service Worker
     navigator.serviceWorker.addEventListener('message', event => {
-        // O tipo da mensagem foi ajustado para 'UPLOAD_STATUS_UPDATE' para corresponder
-        // ao que o Service Worker (sw.js) envia. Isso garante que a interface
-        // seja atualizada em tempo real a cada foto enviada.
         if (event.data && event.data.type === 'UPLOAD_STATUS_UPDATE') {
-            // A função updateIndividualStatus já busca o número atual de fotos na fila,
-            // então a contagem será decrementada corretamente.
             updateIndividualStatus(event.data.submissionId, event.data.success);
         }
     });
 
+    // Fallback para upload se Background Sync não for suportado
     if (!('SyncManager' in window)) {
-        console.log('Background Sync não suportado. Acionando envio em primeiro plano como alternativa.');
         triggerForegroundSync();
     }
 });
@@ -149,7 +144,6 @@ function renderizarTabela() {
 
     let dadosFiltrados = todosOsRegistros;
 
-    // Filter by Street for table display only
     if (filtroRuaValue) {
         dadosFiltrados = dadosFiltrados.filter(item => item.rua.toUpperCase().includes(filtroRuaValue));
     }
@@ -171,14 +165,19 @@ function renderizarTabela() {
     for (const group of sortedVisits) {
         const firstItem = group[0];
         const submissionId = firstItem.submissionId;
-        const dataFormatada = new Date(firstItem.registradoEm._seconds * 1000).toLocaleString('pt-BR');
+        const dataRegistro = new Date(firstItem.registradoEm._seconds * 1000);
         
-        const isEditable = isRegistroEditavel(firstItem);
-        const canPerformSameDayActions = isSameDay(firstItem);
+        // ==================================================================
+        // ALTERAÇÃO APLICADA AQUI: Formatação da data para DD/MM/AAAA
+        // ==================================================================
+        const dataFormatada = dataRegistro.toLocaleDateString('pt-BR', {timeZone: 'UTC'});
+        const dataParaEdicao = dataFormatada; // Usa o mesmo formato para o prompt
 
         const mainRow = document.createElement('tr');
-        const acaoDeletarHtml = canPerformSameDayActions ? `<button class="btn-delete" onclick="deletarVisita('${submissionId}')">Deletar</button>` : `<span class="acao-bloqueada">Bloqueado</span>`;
-        mainRow.innerHTML = `<td><button class="expand-btn" onclick="toggleDetails(this, 'details-${submissionId}')">+</button></td><td>${dataFormatada}</td><td>${firstItem.rua}</td><td>${firstItem.bairro}</td><td>${firstItem.registradoPor}</td><td class="actions">${acaoDeletarHtml}</td>`;
+        const acaoDeletarHtml = `<button class="btn-delete" onclick="deletarVisita('${submissionId}')">Deletar</button>`;
+        const acaoEditarDataHtml = `<button class="btn-update" onclick="editarDataVisita('${submissionId}', '${dataParaEdicao}')">Editar Data</button>`;
+        
+        mainRow.innerHTML = `<td><button class="expand-btn" onclick="toggleDetails(this, 'details-${submissionId}')">+</button></td><td>${dataFormatada}</td><td>${firstItem.rua}</td><td>${firstItem.bairro}</td><td>${firstItem.registradoPor}</td><td class="actions">${acaoEditarDataHtml} ${acaoDeletarHtml}</td>`;
         tableBody.appendChild(mainRow);
         
         const detailsRow = document.createElement('tr');
@@ -189,13 +188,13 @@ function renderizarTabela() {
         group.sort((a,b) => a.identificadorBuraco.localeCompare(b.identificadorBuraco, undefined, {numeric: true}))
              .forEach(buraco => {
                 const dim = buraco.dimensoes;
-                const acaoEditarHtml = isEditable ? `<button class="btn-update" onclick="editarBuraco('${buraco.id}', '${dim.largura}', '${dim.comprimento}', '${dim.espessura}')">Editar</button>` : '';
-                const acaoDeletarBuracoHtml = canPerformSameDayActions ? `<button class="btn-delete-item" onclick="deletarBuraco('${buraco.id}')">Deletar</button>` : '';
+                const acaoEditarHtml = `<button class="btn-update" onclick="editarBuraco('${buraco.id}', '${dim.largura}', '${dim.comprimento}', '${dim.espessura}')">Editar</button>`;
+                const acaoDeletarBuracoHtml = `<button class="btn-delete-item" onclick="deletarBuraco('${buraco.id}')">Deletar</button>`;
                 
                 detailsHtml += `<div class="pothole-detail"><span><strong>${buraco.identificadorBuraco}:</strong> C: ${dim.comprimento}m, L: ${dim.largura}m, E: ${dim.espessura}cm</span><div class="pothole-actions">${acaoEditarHtml} ${acaoDeletarBuracoHtml}</div></div>`;
         });
         
-        const acaoAdicionarBuracoHtml = canPerformSameDayActions ? `<button class="btn-add" onclick="adicionarNovoBuraco('${submissionId}')">Adicionar Buraco</button>` : '';
+        const acaoAdicionarBuracoHtml = `<button class="btn-add" onclick="adicionarNovoBuraco('${submissionId}')">Adicionar Buraco</button>`;
         const acoesVisitaHtml = `<div class="visita-actions"><button class="btn-add-photo" onclick="document.getElementById('file-input-${submissionId}').click()">Adicionar Fotos</button><input type="file" multiple style="display:none;" id="file-input-${submissionId}" onchange="adicionarNovasFotos(this, '${submissionId}')"><div class="upload-status" id="status-${submissionId}"></div></div>`;
         
         let fotosHtml = '';
@@ -223,11 +222,46 @@ function renderizarTabela() {
     setupLazyLoader();
 }
 
+// ==================================================================
+// ALTERAÇÃO APLICADA AQUI: Função de editar data agora aceita e envia o formato DD/MM/AAAA.
+// ==================================================================
+async function editarDataVisita(submissionId, dataAtual) {
+    const novaDataInput = prompt("Digite a nova data no formato DD/MM/AAAA:", dataAtual);
+    
+    if (novaDataInput === null) { // Usuário cancelou
+        return;
+    }
 
-/**
- * Busca os dados no servidor e gera um relatório em PDF.
- * @param {string} selectedDate - A data no formato YYYY-MM-DD.
- */
+    const regexData = /^\d{2}\/\d{2}\/\d{4}$/;
+    if (!regexData.test(novaDataInput)) {
+        alert("Formato de data inválido. Por favor, use DD/MM/AAAA.");
+        return;
+    }
+
+    // Converte DD/MM/AAAA para YYYY-MM-DD para o backend
+    const partesData = novaDataInput.split('/');
+    const dataParaAPI = `${partesData[2]}-${partesData[1]}-${partesData[0]}`;
+
+    try {
+        const res = await fetch(`/api/buracos/visita/data/${submissionId}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ novaData: dataParaAPI })
+        });
+
+        const data = await res.json();
+        alert(data.message || data.error);
+
+        if (res.ok) {
+            // Recarrega todos os dados para garantir a ordenação correta
+            iniciarCarregamentoDeDados();
+        }
+    } catch (err) {
+        console.error("Erro ao editar data da visita:", err);
+        alert('Erro de conexão ao tentar editar a data.');
+    }
+}
+
 async function gerarPDF(selectedDate) {
     const loadingOverlay = document.getElementById('loading-overlay');
     const loadingText = loadingOverlay.querySelector('p');
@@ -236,36 +270,23 @@ async function gerarPDF(selectedDate) {
 
     try {
         const loggedInUser = localStorage.getItem('loggedInUser');
-        if (!loggedInUser) {
-            throw new Error('Usuário não logado. Por favor, faça o login novamente.');
-        }
+        if (!loggedInUser) throw new Error('Usuário não logado.');
 
-        // 1. BUSCAR DADOS DO SERVIDOR
         const response = await fetch(`/api/buracos/por-data?data=${selectedDate}&usuario=${loggedInUser}`);
         const result = await response.json();
 
-        if (!response.ok) {
-            throw new Error(result.error || `Erro ${response.status} ao buscar dados.`);
-        }
-
-        const dadosDoDia = result.data;
-
-        if (dadosDoDia.length === 0) {
+        if (!response.ok) throw new Error(result.error || `Erro ${response.status} ao buscar dados.`);
+        if (result.data.length === 0) {
             alert("Nenhum registro encontrado para a data especificada.");
             return;
         }
 
         loadingText.textContent = 'Gerando PDF...';
-
-        // 2. GERAR O PDF com os dados recebidos
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-
-        if (typeof doc.autoTable !== 'function') {
-            throw new Error("Erro crítico: O plugin jsPDF-AutoTable não foi carregado corretamente.");
-        }
+        if (typeof doc.autoTable !== 'function') throw new Error("Plugin jsPDF-AutoTable não carregado.");
         
-        const ruasDoDia = dadosDoDia.reduce((acc, item) => {
+        const ruasDoDia = result.data.reduce((acc, item) => {
             (acc[item.rua] = acc[item.rua] || []).push(item);
             return acc;
         }, {});
@@ -380,7 +401,7 @@ async function gerarPDF(selectedDate) {
         alert(`Ocorreu um erro inesperado: ${error.message}`);
     } finally {
         loadingOverlay.classList.remove('active');
-        loadingText.textContent = 'Enviando fotos...'; // Reset text
+        loadingText.textContent = 'Enviando fotos...';
     }
 }
 
@@ -396,8 +417,7 @@ function setupLazyLoader() {
             }
         });
     }, { rootMargin: "0px 0px 200px 0px" });
-    const lazyImages = document.querySelectorAll('.lazy-load');
-    lazyImages.forEach(img => lazyLoadObserver.observe(img));
+    document.querySelectorAll('.lazy-load').forEach(img => lazyLoadObserver.observe(img));
 }
 
 function openLightbox(event, fileId) {
@@ -418,10 +438,7 @@ function closeLightbox() {
     const lightbox = document.getElementById('lightbox-overlay');
     const lightboxImg = document.getElementById('lightbox-img');
     lightbox.style.display = 'none';
-    lightboxImg.onload = null;
-    lightboxImg.onerror = null;
     lightboxImg.src = ''; 
-    lightboxImg.style.display = 'none';
 }
 
 async function deletePhoto(event, submissionId, fileId) {
@@ -431,26 +448,10 @@ async function deletePhoto(event, submissionId, fileId) {
         const response = await fetch(`/api/fotos/${submissionId}/${fileId}`, { method: 'DELETE' });
         const result = await response.json();
         alert(result.message || result.error);
-        if (response.ok) {
-            iniciarCarregamentoDeDados();
-        }
+        if (response.ok) iniciarCarregamentoDeDados();
     } catch (error) {
         alert("Erro de conexão ao tentar deletar a foto.");
     }
-}
-
-function isRegistroEditavel(item) {
-    const dataRegistro = new Date(item.registradoEm._seconds * 1000);
-    const limiteEdicao = new Date();
-    limiteEdicao.setDate(limiteEdicao.getDate() - 10);
-    limiteEdicao.setHours(0, 0, 0, 0);
-    return dataRegistro >= limiteEdicao;
-}
-
-function isSameDay(item) {
-    const dataRegistro = new Date(item.registradoEm._seconds * 1000);
-    const hoje = new Date();
-    return dataRegistro.toISOString().split('T')[0] === hoje.toISOString().split('T')[0];
 }
 
 function toggleDetails(button, detailsId) {
@@ -492,9 +493,7 @@ async function editarBuraco(docId, larguraAtual, comprimentoAtual, espessuraAtua
         });
         const data = await res.json();
         alert(data.message || data.error);
-        if(res.ok) {
-            iniciarCarregamentoDeDados();
-        }
+        if(res.ok) iniciarCarregamentoDeDados();
     } catch (err) {
         alert('Erro de conexão ao tentar editar.');
     }
@@ -506,9 +505,7 @@ async function deletarBuraco(docId) {
         const res = await fetch(`/api/buracos/${docId}`, { method: 'DELETE' });
         const data = await res.json();
         alert(data.message || data.error);
-        if (res.ok) {
-            iniciarCarregamentoDeDados();
-        }
+        if (res.ok) iniciarCarregamentoDeDados();
     } catch(err) {
         alert('Erro de conexão ao tentar deletar o buraco.');
     }
@@ -541,9 +538,7 @@ async function adicionarNovoBuraco(submissionId) {
         });
         const data = await res.json();
         alert(data.message || data.error);
-        if (res.ok) {
-            iniciarCarregamentoDeDados();
-        }
+        if (res.ok) iniciarCarregamentoDeDados();
     } catch(err) {
         alert('Erro de conexão ao tentar adicionar o novo buraco.');
     }
@@ -568,12 +563,10 @@ async function adicionarNovasFotos(fileInput, submissionId) {
         if ('serviceWorker' in navigator && 'SyncManager' in window) {
             const registration = await navigator.serviceWorker.ready;
             await registration.sync.register('sync-photos');
-            console.log('Sincronização de fotos agendada.');
         } else {
             triggerForegroundSync();
         }
     } catch (error) {
-        console.error("Erro ao adicionar fotos na fila:", error);
         statusDiv.innerHTML = `<span class="status-error">Erro ao preparar fotos!</span>`;
     } finally {
         fileInput.value = '';
@@ -584,15 +577,12 @@ async function adicionarNovasFotos(fileInput, submissionId) {
 async function triggerForegroundSync() {
     if (isSyncingForeground) return;
     const totalPending = await db.photo_outbox.count();
-    if (totalPending > 0) {
-        sendPendingPhotosInForeground();
-    }
+    if (totalPending > 0) sendPendingPhotosInForeground();
 }
 
 async function sendPendingPhotosInForeground() {
     if (isSyncingForeground) return;
     isSyncingForeground = true;
-    console.log("Iniciando envio de fotos em primeiro plano (não-bloqueante)...");
 
     let wakeLock = null;
     try {
@@ -614,22 +604,15 @@ async function sendPendingPhotosInForeground() {
                             return { success: true };
                         });
                     }
-                    console.error(`Falha no envio da foto ${photo.filename}. Status: ${response.status}`);
                     return { success: false };
                 })
-                .catch(err => {
-                    console.error("Erro de rede no envio em primeiro plano para a foto:", photo.filename, err);
-                    return { success: false };
-                });
+                .catch(err => ({ success: false }));
         });
 
         await Promise.all(uploadPromises);
-
-        console.log("Envio de fotos em primeiro plano concluído. Recarregando a lista de relatórios.");
         iniciarCarregamentoDeDados();
 
     } catch (error) {
-        console.error("Erro geral no processo de envio em primeiro plano:", error);
         alert("Houve uma falha inesperada ao enviar as fotos.");
     } finally {
         if (wakeLock) await wakeLock.release();
@@ -641,9 +624,7 @@ async function sendPendingPhotosInForeground() {
 function updateAllStatuses() {
     document.querySelectorAll('.upload-status').forEach(div => {
         const submissionId = div.id.replace('status-', '');
-        if (submissionId) {
-            updateIndividualStatus(submissionId);
-        }
+        if (submissionId) updateIndividualStatus(submissionId);
     });
 }
 

@@ -13,9 +13,21 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const loadingSpinnerElement = document.getElementById('loadingSpinner');
     const observacaoInputElement = document.getElementById('observacaoInput');
     const successOverlay = document.getElementById('success-overlay');
+    // ==================================================================
+    // ALTERAÇÃO APLICADA AQUI: Mapeamento do novo campo de data
+    // ==================================================================
+    const dataLancamentoElement = document.getElementById('dataLancamento');
 
     let debounceTimer;
     let nextUniqueBuracoId = 1;
+
+    // Função para obter a data no formato YYYY-MM-DD
+    function getISODate(date) {
+        const yyyy = date.getFullYear();
+        const mm = String(date.getMonth() + 1).padStart(2, '0');
+        const dd = String(date.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
 
     // Função para resetar completamente o formulário
     function resetarFormularioCompleto() {
@@ -26,6 +38,10 @@ document.addEventListener('DOMContentLoaded', (event) => {
         document.getElementById('tempoBom').checked = true;
         statusSalvarElement.textContent = '';
         statusSalvarElement.className = '';
+        // ==================================================================
+        // ALTERAÇÃO APLICADA AQUI: Reseta a data para o dia atual
+        // ==================================================================
+        dataLancamentoElement.value = getISODate(new Date());
         adicionarNovoBuraco();
         ruaInputElement.focus();
     }
@@ -44,6 +60,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 });
             })
             .catch(error => {
+                console.error("Erro ao carregar bairros:", error);
                 bairroSelectElement.innerHTML = '<option value="">Erro ao carregar bairros</option>';
             });
     }
@@ -94,7 +111,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         novoBuracoDiv.className = 'buraco-entry';
         novoBuracoDiv.id = 'buracoEntry_' + buracoId;
 
-        // ALTERAÇÃO VISUAL: Invertida a ordem de Comprimento e Largura
         novoBuracoDiv.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div class="buraco-header">TAPA BURACO</div>
@@ -145,13 +161,17 @@ document.addEventListener('DOMContentLoaded', (event) => {
         statusSalvarElement.textContent = '';
         statusSalvarElement.className = '';
 
+        // ==================================================================
+        // ALTERAÇÃO APLICADA AQUI: Coleta a data e a envia para a API
+        // ==================================================================
         const dados = {
             rua: ruaSelecionada,
             bairro: bairroSelecionado,
             buracos: dadosDosBuracos,
             condicaoTempo: document.querySelector('input[name="condicaoTempo"]:checked').value,
             observacao: observacaoInputElement.value.trim(),
-            username: localStorage.getItem('loggedInUser')
+            username: localStorage.getItem('loggedInUser'),
+            dataLancamento: dataLancamentoElement.value 
         };
         
         fetch('/api/salvar', { 
@@ -175,6 +195,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
                 }
             })
             .catch(err => {
+                console.error("Erro ao salvar:", err);
                 statusSalvarElement.textContent = 'Erro de conexão. Verifique a rede.';
                 statusSalvarElement.className = 'error';
             })
@@ -195,7 +216,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
         debounceTimer = setTimeout(() => {
             fetch('/api/buscar-ruas?texto=' + encodeURIComponent(textoDigitado))
                 .then(response => response.json())
-                .then(listaDeRuas => exibirSugestoes(listaDeRuas));
+                .then(listaDeRuas => exibirSugestoes(listaDeRuas))
+                .catch(error => console.error("Erro ao buscar ruas:", error));
         }, 300);
     });
 
@@ -204,4 +226,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
     // Inicialização da página
     carregarBairros();
     adicionarNovoBuraco();
+    // ==================================================================
+    // ALTERAÇÃO APLICADA AQUI: Define a data padrão como o dia de hoje
+    // ==================================================================
+    dataLancamentoElement.value = getISODate(new Date());
 });

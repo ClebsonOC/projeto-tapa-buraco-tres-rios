@@ -24,6 +24,7 @@ const CACHE_EXPIRATION_BAIRROS_MS = 3600 * 1000 * 24; // 24 horas
 // Simulação de Banco de Dados de Usuários
 const USERS_DATABASE = {
   "bruna.almeida": { password: "lytoranea", sheetName: "DadosBruna" },
+  "teste": { password: "medicao", sheetName: "DadosTeste" },
   "admin": { password: "lytoranea2025", sheetName: "Dados", role: "admin" }
 };
 

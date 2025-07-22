@@ -1,6 +1,5 @@
 // public/js/efetivo.js
 
-// Lista de itens atualizada conforme sua solicitação
 const ITENS_EFETIVO = [
     "CAMINHÃO CACHORREIRA", "CAMINHÃO CAÇAMBA", "ROLO DE CHAPA", "CORTADORA DE PISO",
     "OPERADOR ROLO", "MOTORISTA 1", "MOTORISTA 2", "ENCARREGADO", "APONTADOR",
@@ -8,7 +7,19 @@ const ITENS_EFETIVO = [
     "RASTELEIRO 1", "RASTELEIRO 2"
 ];
 
-let efetivoDeHojeId = null;
+// ==================================================================
+// ALTERAÇÃO APLICADA AQUI: Variáveis e elementos para controle de data
+// ==================================================================
+let efetivoDoDiaId = null;
+let dataEfetivoInput; 
+
+// Função para obter a data no formato YYYY-MM-DD
+function getISODate(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const loggedInUser = localStorage.getItem('loggedInUser');
@@ -17,8 +28,16 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    dataEfetivoInput = document.getElementById('dataEfetivo');
+
+    // Define a data padrão e adiciona um listener para carregar dados quando a data mudar
+    dataEfetivoInput.value = getISODate(new Date());
+    dataEfetivoInput.addEventListener('change', () => {
+        carregarEfetivoParaData(loggedInUser);
+    });
+
     initializeForm();
-    carregarEfetivoDeHoje(loggedInUser);
+    carregarEfetivoParaData(loggedInUser); // Carga inicial para a data de hoje
     carregarHistorico(loggedInUser);
 
     const form = document.getElementById('efetivo-form');
@@ -28,7 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function initializeForm() {
-    document.getElementById('data-hoje').textContent = `Registro para: ${new Date().toLocaleDateString('pt-BR')}`;
     const gridContainer = document.querySelector('.efetivo-grid');
     gridContainer.innerHTML = '';
     ITENS_EFETIVO.forEach(item => {
@@ -40,27 +58,44 @@ function initializeForm() {
     });
 }
 
-async function carregarEfetivoDeHoje(usuario) {
+// ==================================================================
+// ALTERAÇÃO APLICADA AQUI: Função modificada para carregar dados da data selecionada
+// ==================================================================
+async function carregarEfetivoParaData(usuario) {
+    // Reseta o estado do formulário antes de carregar novos dados
+    efetivoDoDiaId = null;
+    document.getElementById('efetivo-form').reset();
+    document.getElementById('salvar-btn').textContent = "Salvar Efetivo";
+    
+    const selectedDate = dataEfetivoInput.value;
+
     try {
         const response = await fetch(`/api/efetivo?usuario=${usuario}`);
         if (!response.ok) throw new Error('Falha ao buscar dados.');
         const historico = await response.json();
-        const hojeISO = new Date().toISOString().split('T')[0];
-        const registroDeHoje = historico.find(reg => reg.registradoEm && new Date(reg.registradoEm._seconds * 1000).toISOString().startsWith(hojeISO));
+        
+        // Procura pelo registro que corresponde à data selecionada no frontend
+        const registroDoDia = historico.find(reg => {
+            if (!reg.registradoEm || !reg.registradoEm._seconds) return false;
+            const registroDate = new Date(reg.registradoEm._seconds * 1000);
+            const tzOffset = registroDate.getTimezoneOffset() * 60000;
+            const localISOTime = (new Date(registroDate - tzOffset)).toISOString().split('T')[0];
+            return localISOTime === selectedDate;
+        });
 
-        if (registroDeHoje) {
-            efetivoDeHojeId = registroDeHoje.id;
+        if (registroDoDia) {
+            efetivoDoDiaId = registroDoDia.id;
             document.getElementById('salvar-btn').textContent = "Atualizar Efetivo";
-            document.getElementById('observacao').value = registroDeHoje.observacao;
+            document.getElementById('observacao').value = registroDoDia.observacao;
             ITENS_EFETIVO.forEach(item => {
                 const checkbox = document.querySelector(`input[value="${item}"]`);
                 if (checkbox) {
-                    checkbox.checked = registroDeHoje.itensPresentes.includes(item);
+                    checkbox.checked = registroDoDia.itensPresentes.includes(item);
                 }
             });
         }
     } catch (error) {
-        console.error("Erro ao carregar efetivo de hoje:", error);
+        console.error("Erro ao carregar efetivo para a data selecionada:", error);
     }
 }
 
@@ -111,6 +146,7 @@ async function carregarHistorico(usuario) {
             tableBody.appendChild(detailsRow);
         });
     } catch (error) {
+        console.error("Erro ao carregar histórico:", error);
         loadingDiv.innerText = 'Erro ao carregar histórico.';
     }
 }
@@ -123,6 +159,9 @@ function toggleDetails(button, detailsId) {
     }
 }
 
+// ==================================================================
+// ALTERAÇÃO APLICADA AQUI: Função de salvar envia a data selecionada
+// ==================================================================
 async function salvarEfetivo(event) {
     event.preventDefault();
     const salvarBtn = document.getElementById('salvar-btn');
@@ -135,30 +174,23 @@ async function salvarEfetivo(event) {
     const payload = {
         registradoPor: localStorage.getItem('loggedInUser'),
         itensPresentes,
-        observacao
+        observacao,
+        dataLancamento: dataEfetivoInput.value // Envia a data selecionada para a API
     };
-
-    let url = '/api/efetivo';
-    let method = 'POST';
-    if (efetivoDeHojeId) {
-        url = `/api/efetivo/${efetivoDeHojeId}`;
-        method = 'PATCH';
-    }
     
     try {
-        const response = await fetch(url, {
-            method,
+        // A requisição agora é sempre POST. O backend decide se cria um novo ou atualiza.
+        const response = await fetch('/api/efetivo', {
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
         const result = await response.json();
         if (!response.ok) throw new Error(result.error);
         
-        // Lógica de sucesso com o popup
         const successOverlay = document.getElementById('success-overlay');
         successOverlay.classList.add('active');
 
-        // Após 2 segundos, recarrega a página para resetar e atualizar o histórico
         setTimeout(() => {
             window.location.reload();
         }, 2000);
@@ -166,6 +198,6 @@ async function salvarEfetivo(event) {
     } catch (error) {
         alert(`Erro: ${error.message}`);
         salvarBtn.disabled = false;
-        salvarBtn.textContent = efetivoDeHojeId ? 'Atualizar Efetivo' : 'Salvar Efetivo de Hoje';
+        salvarBtn.textContent = efetivoDoDiaId ? 'Atualizar Efetivo' : 'Salvar Efetivo';
     }
 }
