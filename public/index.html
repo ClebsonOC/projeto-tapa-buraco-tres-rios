@@ -30,9 +30,6 @@
     <div class="container">
         <h1>Tapa Buracos - Três Rios</h1>
 
-        <!-- ================================================================== -->
-        <!-- ALTERAÇÃO APLICADA AQUI: Adicionado seletor de data para o lançamento -->
-        <!-- ================================================================== -->
         <div class="form-row">
             <div class="form-column">
                 <label for="dataLancamento">1.1 Data do Lançamento:</label>
@@ -44,13 +41,15 @@
             <div class="form-column">
                 <label for="ruaInput">1.2 Digite ou selecione o nome da rua:</label>
                 <input type="text" id="ruaInput" name="ruaInput" autocomplete="off" placeholder="Ex: Rua Dom Adriano (mín. 2 letras)">
-                <div id="sugestoes" style="display:none;"></div>
+                <div id="ruaSugestoes" class="sugestoes-container" style="display:none;"></div>
             </div>
+            <!-- ================================================================== -->
+            <!-- ALTERAÇÃO APLICADA AQUI: Campo de Bairro agora é um input de texto -->
+            <!-- ================================================================== -->
             <div class="form-column">
-                <label for="bairroSelect">1.3 Selecione o Bairro:</label>
-                <select id="bairroSelect" name="bairroSelect">
-                    <option value="">Carregando bairros...</option>
-                </select>
+                <label for="bairroInput">1.3 Digite ou selecione o Bairro:</label>
+                <input type="text" id="bairroInput" name="bairroInput" autocomplete="off" placeholder="Digite o nome do bairro">
+                <div id="bairroSugestoes" class="sugestoes-container" style="display:none;"></div>
             </div>
         </div>
 

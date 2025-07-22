@@ -167,11 +167,8 @@ function renderizarTabela() {
         const submissionId = firstItem.submissionId;
         const dataRegistro = new Date(firstItem.registradoEm._seconds * 1000);
         
-        // ==================================================================
-        // ALTERAÇÃO APLICADA AQUI: Formatação da data para DD/MM/AAAA
-        // ==================================================================
         const dataFormatada = dataRegistro.toLocaleDateString('pt-BR', {timeZone: 'UTC'});
-        const dataParaEdicao = dataFormatada; // Usa o mesmo formato para o prompt
+        const dataParaEdicao = dataFormatada;
 
         const mainRow = document.createElement('tr');
         const acaoDeletarHtml = `<button class="btn-delete" onclick="deletarVisita('${submissionId}')">Deletar</button>`;
@@ -222,13 +219,10 @@ function renderizarTabela() {
     setupLazyLoader();
 }
 
-// ==================================================================
-// ALTERAÇÃO APLICADA AQUI: Função de editar data agora aceita e envia o formato DD/MM/AAAA.
-// ==================================================================
 async function editarDataVisita(submissionId, dataAtual) {
     const novaDataInput = prompt("Digite a nova data no formato DD/MM/AAAA:", dataAtual);
     
-    if (novaDataInput === null) { // Usuário cancelou
+    if (novaDataInput === null) {
         return;
     }
 
@@ -238,7 +232,6 @@ async function editarDataVisita(submissionId, dataAtual) {
         return;
     }
 
-    // Converte DD/MM/AAAA para YYYY-MM-DD para o backend
     const partesData = novaDataInput.split('/');
     const dataParaAPI = `${partesData[2]}-${partesData[1]}-${partesData[0]}`;
 
@@ -253,7 +246,6 @@ async function editarDataVisita(submissionId, dataAtual) {
         alert(data.message || data.error);
 
         if (res.ok) {
-            // Recarrega todos os dados para garantir a ordenação correta
             iniciarCarregamentoDeDados();
         }
     } catch (err) {
@@ -434,11 +426,17 @@ function openLightbox(event, fileId) {
     lightboxImg.onerror = () => { spinner.style.display = 'none'; alert('Não foi possível carregar a imagem.'); closeLightbox(); };
 }
 
+// ==================================================================
+// CORREÇÃO APLICADA AQUI: Função ajustada para evitar recarga de página.
+// ==================================================================
 function closeLightbox() {
     const lightbox = document.getElementById('lightbox-overlay');
     const lightboxImg = document.getElementById('lightbox-img');
     lightbox.style.display = 'none';
-    lightboxImg.src = ''; 
+    // Limpa o src e os handlers para evitar qualquer request indesejado
+    lightboxImg.src = 'about:blank';
+    lightboxImg.onload = null;
+    lightboxImg.onerror = null;
 }
 
 async function deletePhoto(event, submissionId, fileId) {

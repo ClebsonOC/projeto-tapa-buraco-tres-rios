@@ -2,10 +2,11 @@
 
 document.addEventListener('DOMContentLoaded', (event) => {
     
-    // Mapeamento de todos os elementos do DOM
+    // Mapeamento dos elementos do DOM
     const ruaInputElement = document.getElementById('ruaInput');
-    const sugestoesDivElement = document.getElementById('sugestoes');
-    const bairroSelectElement = document.getElementById('bairroSelect');
+    const ruaSugestoesDivElement = document.getElementById('ruaSugestoes');
+    const bairroInputElement = document.getElementById('bairroInput');
+    const bairroSugestoesDivElement = document.getElementById('bairroSugestoes');
     const buracosContainerElement = document.getElementById('buracosContainer');
     const addBuracoBtnElement = document.getElementById('addBuracoBtn');
     const salvarTudoBtnElement = document.getElementById('salvarTudoBtn');
@@ -13,13 +14,11 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const loadingSpinnerElement = document.getElementById('loadingSpinner');
     const observacaoInputElement = document.getElementById('observacaoInput');
     const successOverlay = document.getElementById('success-overlay');
-    // ==================================================================
-    // ALTERAÇÃO APLICADA AQUI: Mapeamento do novo campo de data
-    // ==================================================================
     const dataLancamentoElement = document.getElementById('dataLancamento');
 
     let debounceTimer;
     let nextUniqueBuracoId = 1;
+    let todosOsBairros = [];
 
     // Função para obter a data no formato YYYY-MM-DD
     function getISODate(date) {
@@ -29,78 +28,65 @@ document.addEventListener('DOMContentLoaded', (event) => {
         return `${yyyy}-${mm}-${dd}`;
     }
 
-    // Função para resetar completamente o formulário
+    // Função para resetar o formulário
     function resetarFormularioCompleto() {
         ruaInputElement.value = '';
-        bairroSelectElement.value = '';
+        bairroInputElement.value = '';
         observacaoInputElement.value = '';
         buracosContainerElement.innerHTML = '';
         document.getElementById('tempoBom').checked = true;
         statusSalvarElement.textContent = '';
         statusSalvarElement.className = '';
-        // ==================================================================
-        // ALTERAÇÃO APLICADA AQUI: Reseta a data para o dia atual
-        // ==================================================================
         dataLancamentoElement.value = getISODate(new Date());
         adicionarNovoBuraco();
-        ruaInputElement.focus();
+        dataLancamentoElement.focus();
     }
     
-    // Função para carregar bairros da API
-    function carregarBairros() {
+    // ==================================================================
+    // ALTERAÇÃO APLICADA AQUI: Carrega os bairros para o autocompletar
+    // ==================================================================
+    function carregarBairrosParaAutocompletar() {
         fetch('/api/buscar-bairros')
             .then(response => response.json())
             .then(bairros => {
-                bairroSelectElement.innerHTML = '<option value="">Selecione um bairro</option>';
-                bairros.forEach(bairro => {
-                    const option = document.createElement('option');
-                    option.value = bairro;
-                    option.textContent = bairro;
-                    bairroSelectElement.appendChild(option);
-                });
+                todosOsBairros = bairros;
             })
             .catch(error => {
                 console.error("Erro ao carregar bairros:", error);
-                bairroSelectElement.innerHTML = '<option value="">Erro ao carregar bairros</option>';
             });
     }
 
-    // Função para exibir sugestões de ruas
-    function exibirSugestoes(ruas) {
-        sugestoesDivElement.innerHTML = '';
-        if (ruas && ruas.length > 0) {
-            sugestoesDivElement.style.display = 'block';
-            ruas.forEach(rua => {
+    // Função genérica para exibir sugestões
+    function exibirSugestoes(items, container, inputElement, onSelectCallback) {
+        container.innerHTML = '';
+        if (items && items.length > 0) {
+            container.style.display = 'block';
+            items.forEach(item => {
                 const divItem = document.createElement('div');
                 divItem.className = 'sugestao-item';
-                divItem.textContent = rua;
-                divItem.addEventListener('click', () => selecionarRua(rua));
-                sugestoesDivElement.appendChild(divItem);
+                divItem.textContent = item;
+                divItem.addEventListener('click', () => {
+                    inputElement.value = item;
+                    container.style.display = 'none';
+                    if(onSelectCallback) onSelectCallback();
+                });
+                container.appendChild(divItem);
             });
         } else {
-            sugestoesDivElement.style.display = 'none';
+            container.style.display = 'none';
         }
     }
 
-    // Função para selecionar uma rua da lista
-    function selecionarRua(rua) {
-        ruaInputElement.value = rua;
-        sugestoesDivElement.style.display = 'none';
-        bairroSelectElement.focus();
-    }
-
-    // Renumera os cabeçalhos dos buracos
+    // Renumera os buracos
     function renumerarBuracosVisualmente() {
         const buracoEntries = buracosContainerElement.getElementsByClassName('buraco-entry');
         for (let i = 0; i < buracoEntries.length; i++) {
             const header = buracoEntries[i].querySelector('.buraco-header');
-            if (header) {
-                header.textContent = `TAPA BURACO ${i + 1}`;
-            }
+            if (header) header.textContent = `TAPA BURACO ${i + 1}`;
         }
     }
 
-    // Adiciona um novo campo de buraco ao formulário
+    // Adiciona um novo campo de buraco
     function adicionarNovoBuraco() {
         if (buracosContainerElement.children.length >= 50) {
             alert("Limite de 50 buracos por submissão atingido.");
@@ -128,12 +114,12 @@ document.addEventListener('DOMContentLoaded', (event) => {
         renumerarBuracosVisualmente();
     };
 
-    // Lógica principal de salvamento
+    // Lógica de salvamento
     salvarTudoBtnElement.addEventListener('click', function() {
         const ruaSelecionada = ruaInputElement.value.trim();
-        const bairroSelecionado = bairroSelectElement.value;
+        const bairroSelecionado = bairroInputElement.value.trim();
         if (!ruaSelecionada || !bairroSelecionado) {
-            alert('Por favor, selecione uma rua e um bairro.');
+            alert('Por favor, preencha a rua e o bairro.');
             return;
         }
         
@@ -158,12 +144,7 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         loadingSpinnerElement.style.display = 'block';
         salvarTudoBtnElement.disabled = true;
-        statusSalvarElement.textContent = '';
-        statusSalvarElement.className = '';
 
-        // ==================================================================
-        // ALTERAÇÃO APLICADA AQUI: Coleta a data e a envia para a API
-        // ==================================================================
         const dados = {
             rua: ruaSelecionada,
             bairro: bairroSelecionado,
@@ -176,58 +157,70 @@ document.addEventListener('DOMContentLoaded', (event) => {
         
         fetch('/api/salvar', { 
             method: 'POST', 
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(dados)
         })
-            .then(response => response.json().then(data => ({ ok: response.ok, body: data })))
-            .then(({ ok, body }) => {
-                if (ok) {
-                    resetarFormularioCompleto();
-                    successOverlay.classList.add('active');
-                    setTimeout(() => {
-                        successOverlay.classList.remove('active');
-                    }, 2500);
-                } else {
-                    statusSalvarElement.textContent = body.error || 'Ocorreu um erro.';
-                    statusSalvarElement.className = 'error';
-                }
-            })
-            .catch(err => {
-                console.error("Erro ao salvar:", err);
-                statusSalvarElement.textContent = 'Erro de conexão. Verifique a rede.';
+        .then(response => response.json().then(data => ({ ok: response.ok, body: data })))
+        .then(({ ok, body }) => {
+            if (ok) {
+                resetarFormularioCompleto();
+                successOverlay.classList.add('active');
+                setTimeout(() => successOverlay.classList.remove('active'), 2500);
+            } else {
+                statusSalvarElement.textContent = body.error || 'Ocorreu um erro.';
                 statusSalvarElement.className = 'error';
-            })
-            .finally(() => {
-                loadingSpinnerElement.style.display = 'none';
-                salvarTudoBtnElement.disabled = false;
-            });
+            }
+        })
+        .catch(err => {
+            statusSalvarElement.textContent = 'Erro de conexão. Verifique a rede.';
+            statusSalvarElement.className = 'error';
+        })
+        .finally(() => {
+            loadingSpinnerElement.style.display = 'none';
+            salvarTudoBtnElement.disabled = false;
+        });
     });
 
-    // Event listeners
+    // Event listener para autocompletar RUA
     ruaInputElement.addEventListener('input', (event) => {
         clearTimeout(debounceTimer);
         const textoDigitado = event.target.value;
         if (textoDigitado.length < 2) {
-            sugestoesDivElement.style.display = 'none';
+            ruaSugestoesDivElement.style.display = 'none';
             return;
         }
         debounceTimer = setTimeout(() => {
             fetch('/api/buscar-ruas?texto=' + encodeURIComponent(textoDigitado))
                 .then(response => response.json())
-                .then(listaDeRuas => exibirSugestoes(listaDeRuas))
-                .catch(error => console.error("Erro ao buscar ruas:", error));
+                .then(listaDeRuas => exibirSugestoes(listaDeRuas, ruaSugestoesDivElement, ruaInputElement, () => bairroInputElement.focus()));
         }, 300);
     });
 
+    // ==================================================================
+    // ALTERAÇÃO APLICADA AQUI: Event listener para autocompletar BAIRRO
+    // ==================================================================
+    bairroInputElement.addEventListener('input', (event) => {
+        const textoDigitado = event.target.value.toLowerCase();
+        if (!textoDigitado) {
+            bairroSugestoesDivElement.style.display = 'none';
+            return;
+        }
+        const bairrosFiltrados = todosOsBairros.filter(bairro => 
+            bairro.toLowerCase().includes(textoDigitado)
+        );
+        exibirSugestoes(bairrosFiltrados, bairroSugestoesDivElement, bairroInputElement);
+    });
+
+    // Oculta sugestões ao clicar fora
+    document.addEventListener('click', function(event) {
+        if (!ruaInputElement.contains(event.target)) ruaSugestoesDivElement.style.display = 'none';
+        if (!bairroInputElement.contains(event.target)) bairroSugestoesDivElement.style.display = 'none';
+    });
+    
     addBuracoBtnElement.addEventListener('click', adicionarNovoBuraco);
     
     // Inicialização da página
-    carregarBairros();
+    carregarBairrosParaAutocompletar();
     adicionarNovoBuraco();
-    // ==================================================================
-    // ALTERAÇÃO APLICADA AQUI: Define a data padrão como o dia de hoje
-    // ==================================================================
     dataLancamentoElement.value = getISODate(new Date());
 });
