@@ -268,10 +268,7 @@ router.post("/salvar", async (req, res) => {
     }
 });
 
-// ==================================================================
-// CORREÇÃO APLICADA AQUI: Rota de busca de buracos foi revertida para remover
-// os filtros de data que estavam causando o problema.
-// ==================================================================
+// Rota de busca de buracos (sem alterações)
 router.get("/buracos", async (req, res) => {
     try {
         const { usuario, lastVisibleTimestamp } = req.query;
@@ -287,7 +284,7 @@ router.get("/buracos", async (req, res) => {
             query = query.startAfter(lastDate);
         }
 
-        const snapshot = await query.limit(limit * 5).get(); // Fetch more to group by submission
+        const snapshot = await query.limit(limit * 5).get();
         
         const visits = new Map();
         snapshot.docs.forEach(doc => {
@@ -320,9 +317,7 @@ router.get("/buracos", async (req, res) => {
     }
 });
 
-// ==================================================================
-// NOVA ROTA: Adicionada rota para permitir a alteração da data de uma visita inteira.
-// ==================================================================
+// Rota para editar data da visita (sem alterações)
 router.patch("/buracos/visita/data/:submissionId", async (req, res) => {
     try {
         const { submissionId } = req.params;
@@ -332,7 +327,7 @@ router.patch("/buracos/visita/data/:submissionId", async (req, res) => {
             return res.status(400).json({ error: "ID da submissão e nova data são obrigatórios." });
         }
 
-        const dataParaSalvar = new Date(novaData + 'T12:00:00'); // Evita problemas de fuso
+        const dataParaSalvar = new Date(novaData + 'T12:00:00');
 
         const visitaQuery = firestore.collection('buracos').where('submissionId', '==', submissionId);
         
@@ -357,7 +352,10 @@ router.patch("/buracos/visita/data/:submissionId", async (req, res) => {
 });
 
 
-// Rota para adicionar buraco a uma visita (sem alterações)
+// ==================================================================
+// CORREÇÃO APLICADA AQUI: Lógica de adicionar novo buraco
+// - Garante que o novo buraco receba a data original do lançamento.
+// ==================================================================
 router.post("/buracos/visita/:submissionId", async (req, res) => {
     try {
         const { submissionId } = req.params;
@@ -369,7 +367,9 @@ router.post("/buracos/visita/:submissionId", async (req, res) => {
         if (visitaSnapshot.empty) {
             return res.status(404).json({ error: "Visita original não encontrada." });
         }
+        
         const dadosVisita = visitaSnapshot.docs[0].data();
+        
         const todosBuracosSnapshot = await firestore.collection('buracos').where('submissionId', '==', submissionId).get();
         let maxId = 0;
         todosBuracosSnapshot.forEach(doc => {
@@ -381,12 +381,26 @@ router.post("/buracos/visita/:submissionId", async (req, res) => {
             }
         });
         const novoIdentificador = `TAPA BURACO ${maxId + 1}`;
-        const novoBuraco = { ...dadosVisita, identificadorBuraco: novoIdentificador, dimensoes: { largura: String(dimensoes.largura).replace(".", ","), comprimento: String(dimensoes.comprimento).replace(".", ","), espessura: String(dimensoes.espessura).replace(".", ",") }, registradoEm: new Date() };
+        
+        // O novo buraco herda todos os dados da visita original (incluindo a data)
+        const novoBuraco = { 
+            ...dadosVisita, 
+            identificadorBuraco: novoIdentificador, 
+            dimensoes: { 
+                largura: String(dimensoes.largura).replace(".", ","), 
+                comprimento: String(dimensoes.comprimento).replace(".", ","), 
+                espessura: String(dimensoes.espessura).replace(".", ",") 
+            },
+        };
+        
         delete novoBuraco.id;
+        
         const novoBuracoRef = firestore.collection("buracos").doc();
         await novoBuracoRef.set(novoBuraco);
+        
         res.status(201).json({ message: `Novo buraco adicionado à visita.`, novoId: novoBuracoRef.id });
     } catch (error) {
+        console.error("Erro ao adicionar novo buraco:", error);
         res.status(500).json({ error: "Erro interno ao adicionar novo buraco." });
     }
 });
