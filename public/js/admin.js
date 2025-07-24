@@ -206,7 +206,7 @@ function renderizarTabela() {
 
         if (record.tipo === 'buraco') {
             resumo = `${record.rua}, ${record.bairro}`;
-            tipoDisplay = 'Visita em Campo';
+            tipoDisplay = 'Registro de Rua';
         } else {
             resumo = `${record.itensPresentes.length} itens presentes`;
             tipoDisplay = 'Controle de Efetivo';
@@ -232,7 +232,7 @@ function renderizarTabela() {
                 });
                 fotosHtml += '</div>';
             }
-            detailsHtml = `<div class="details-grid"><div class="details-section"><h3>Informações da Visita</h3><ul><li><strong>Rua:</strong> ${record.rua}</li><li><strong>Bairro:</strong> ${record.bairro}</li><li><strong>Condição do Tempo:</strong> ${record.condicaoTempo}</li></ul></div><div class="details-section"><h3>Buracos Registrados</h3><ul>${buracosListHtml}</ul></div></div><div class="details-section" style="grid-column: 1 / -1;"><h3>Fotos</h3>${fotosHtml}</div>`;
+            detailsHtml = `<div class="details-grid"><div class="details-section"><h3>Informações da Rua</h3><ul><li><strong>Rua:</strong> ${record.rua}</li><li><strong>Bairro:</strong> ${record.bairro}</li><li><strong>Condição do Tempo:</strong> ${record.condicaoTempo}</li></ul></div><div class="details-section"><h3>Buracos Registrados</h3><ul>${buracosListHtml}</ul></div></div><div class="details-section" style="grid-column: 1 / -1;"><h3>Fotos</h3>${fotosHtml}</div>`;
         } else {
             const itensHtml = record.itensPresentes.length > 0 ? `<li>${record.itensPresentes.join('</li><li>')}</li>` : '<li>Nenhum item marcado.</li>';
             detailsHtml = `<div class="details-section"><h3>Itens Presentes</h3><ul>${itensHtml}</ul></div>`;
