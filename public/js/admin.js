@@ -4,6 +4,7 @@ let todosOsDadosCombinados = [];
 let lazyLoadObserver;
 let lastVisibleTimestamp = null;
 let isLoading = false;
+let hasMoreData = true; // Nova variável para controlar se há mais dados a carregar
 
 // Variáveis para armazenar os elementos do DOM
 let loadingDiv;
@@ -57,6 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const resetAndLoad = () => {
         todosOsDadosCombinados = [];
         lastVisibleTimestamp = null;
+        hasMoreData = true; // Reseta a flag de mais dados
         tableBody.innerHTML = '';
         loadMoreButton.style.display = 'none';
         iniciarCarregamentoDeDados();
@@ -107,7 +109,9 @@ async function carregarUsuarios() {
             filtroUsuario.appendChild(option);
         });
     } catch (error) {
-        alert(`Erro ao carregar usuários: ${error.message}`);
+        // Substituído alert por console.error para evitar interrupções no UX
+        console.error(`Erro ao carregar usuários: ${error.message}`);
+        // Poderia adicionar uma mensagem na tela para o usuário
     }
 }
 
@@ -118,7 +122,7 @@ function iniciarCarregamentoDeDados() {
 }
 
 async function carregarPaginaDeDados() {
-    if (isLoading) return;
+    if (isLoading || !hasMoreData) return; // Impede carregamento se já estiver carregando ou não houver mais dados
     isLoading = true;
 
     loadingDiv.style.display = 'block';
@@ -153,17 +157,20 @@ async function carregarPaginaDeDados() {
         
         todosOsDadosCombinados.push(...novosDados);
         lastVisibleTimestamp = newTimestamp;
+        hasMoreData = !!newTimestamp; // Atualiza a flag de mais dados
 
         renderizarTabela();
 
-        if (newTimestamp) {
+        if (hasMoreData) {
             loadMoreButton.style.display = 'block';
         } else {
             loadMoreButton.style.display = 'none';
         }
 
     } catch (error) {
-        alert(`Erro ao carregar dados: ${error.message}`);
+        // Substituído alert por console.error para evitar interrupções no UX
+        console.error(`Erro ao carregar dados: ${error.message}`);
+        // Poderia adicionar uma mensagem na tela para o usuário
     } finally {
         isLoading = false;
         loadingDiv.style.display = 'none';
@@ -175,23 +182,26 @@ function renderizarTabela() {
     
     if (lazyLoadObserver) lazyLoadObserver.disconnect();
 
-    const dadosFiltrados = todosOsDadosCombinados.filter(record => {
+    // Filtra os dados já carregados para exibir na tabela
+    const dadosParaExibir = todosOsDadosCombinados.filter(record => {
         return (selectedType === 'todos' || record.tipo === selectedType);
     });
 
-    tableBody.innerHTML = '';
+    tableBody.innerHTML = ''; // Limpa a tabela antes de renderizar
     
-    if (dadosFiltrados.length === 0 && !isLoading) {
+    if (dadosParaExibir.length === 0 && !isLoading) {
         tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum registro encontrado para os filtros selecionados.</td></tr>';
         return;
     }
 
-    dadosFiltrados.forEach(record => {
-        if (document.getElementById(`details-${record.id}`)) return;
+    dadosParaExibir.forEach(record => {
+        // Verifica se o registro já existe na tabela para evitar duplicatas
+        if (document.getElementById(`main-row-${record.id}`)) return; 
 
         const dataFormatada = new Date(record.data * 1000).toLocaleString('pt-BR');
         const recordId = record.id;
         const mainRow = document.createElement('tr');
+        mainRow.id = `main-row-${recordId}`; // Adiciona um ID para a linha principal
         let resumo = '', tipoDisplay = '';
 
         if (record.tipo === 'buraco') {

@@ -65,16 +65,18 @@ router.get("/admin/usuarios", isAdmin, async (req, res) => {
 router.get("/admin/dados", isAdmin, async (req, res) => {
     try {
         const { usuario, lastVisibleTimestamp, dataInicio, dataFim } = req.query;
-        const limit = 7;
+        const limit = 7; // Limite de itens por página
 
         let buracosQuery = firestore.collection('buracos');
         let efetivoQuery = firestore.collection('efetivo');
 
-        if (usuario) {
+        // Aplica filtro de usuário
+        if (usuario && usuario !== 'todos') { // Verifica se o filtro de usuário não é 'todos'
             buracosQuery = buracosQuery.where('registradoPor', '==', usuario);
             efetivoQuery = efetivoQuery.where('registradoPor', '==', usuario);
         }
 
+        // Aplica filtros de data
         if (dataInicio) {
             const inicioDate = new Date(dataInicio);
             buracosQuery = buracosQuery.where('registradoEm', '>=', inicioDate);
@@ -82,45 +84,57 @@ router.get("/admin/dados", isAdmin, async (req, res) => {
         }
         if (dataFim) {
             const fimDate = new Date(dataFim);
-            fimDate.setUTCHours(23, 59, 59, 999);
+            fimDate.setUTCHours(23, 59, 59, 999); // Garante que a data final inclua todo o dia
             buracosQuery = buracosQuery.where('registradoEm', '<=', fimDate);
             efetivoQuery = efetivoQuery.where('registradoEm', '<=', fimDate);
         }
 
-        buracosQuery = buracosQuery.orderBy('registradoEm', 'desc');
-        efetivoQuery = efetivoQuery.orderBy('registradoEm', 'desc');
-
-        if (lastVisibleTimestamp) {
-            const lastDate = new Date(parseInt(lastVisibleTimestamp));
-            buracosQuery = buracosQuery.startAfter(lastDate);
-            efetivoQuery = efetivoQuery.startAfter(lastDate);
-        }
-
-        const fetchLimit = limit + 10;
-        buracosQuery = buracosQuery.limit(fetchLimit);
-        efetivoQuery = efetivoQuery.limit(fetchLimit);
-
+        // Busca todos os documentos que correspondem aos filtros (sem limite inicial para paginação)
         const [buracosSnapshot, efetivoSnapshot] = await Promise.all([
-            buracosQuery.get(),
-            efetivoQuery.get()
+            buracosQuery.orderBy('registradoEm', 'desc').get(), // Ordena para garantir consistência
+            efetivoQuery.orderBy('registradoEm', 'desc').get()
         ]);
 
+        // Mapeia e combina os resultados
         const buracosList = buracosSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'buraco' }));
         const efetivoList = efetivoSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data(), type: 'efetivo' }));
-        const combinedList = [...buracosList, ...efetivoList];
+        let combinedList = [...buracosList, ...efetivoList];
+
+        // Ordena a lista combinada por data de registro (mais recente primeiro)
         combinedList.sort((a, b) => b.registradoEm.toMillis() - a.registradoEm.toMillis());
 
         const finalResults = [];
         const processedSubmissions = new Set();
-        for (const item of combinedList) {
-            if (finalResults.length >= limit) break;
+        let startIndex = 0;
+
+        // Se houver um lastVisibleTimestamp, encontra o índice de onde começar
+        if (lastVisibleTimestamp) {
+            const lastDateMillis = parseInt(lastVisibleTimestamp);
+            // Encontra o primeiro item na lista combinada que é anterior ou igual ao lastVisibleTimestamp
+            // Isso garante que a próxima página comece após o último item da página anterior
+            startIndex = combinedList.findIndex(item => item.registradoEm.toMillis() <= lastDateMillis);
+            // Se encontrado, avança para o próximo item para evitar duplicatas
+            if (startIndex !== -1) {
+                startIndex++; 
+            } else {
+                // Se lastVisibleTimestamp for mais recente que todos os itens, não há mais dados.
+                return res.status(200).json({ data: [], lastVisibleTimestamp: null });
+            }
+        }
+        
+        // Itera a partir do startIndex para popular finalResults até o limite
+        for (let i = startIndex; i < combinedList.length; i++) {
+            const item = combinedList[i];
+            if (finalResults.length >= limit) break; // Limita o número de resultados retornados
+
             if (item.type === 'efetivo') {
                 finalResults.push({ ...item, tipo: 'efetivo', data: item.registradoEm._seconds });
             } else if (item.type === 'buraco' && !processedSubmissions.has(item.submissionId)) {
+                // Para buracos, agrupa por submissionId para mostrar a visita completa
                 const allBuracosForSubmission = combinedList.filter(b => b.submissionId === item.submissionId);
-                const firstItem = allBuracosForSubmission[0];
+                const firstItem = allBuracosForSubmission[0]; // Pega o primeiro item para os dados gerais da visita
                 finalResults.push({
-                    id: firstItem.submissionId,
+                    id: firstItem.submissionId, // Usa o submissionId como ID principal
                     tipo: 'buraco',
                     data: firstItem.registradoEm._seconds,
                     registradoPor: firstItem.registradoPor,
@@ -135,12 +149,18 @@ router.get("/admin/dados", isAdmin, async (req, res) => {
             }
         }
 
-        const newLastVisibleTimestamp = finalResults.length === limit ? combinedList[limit -1].registradoEm.toMillis() : null;
+        // Calcula o novo lastVisibleTimestamp para a próxima página
+        let newLastVisibleTimestamp = null;
+        if (finalResults.length === limit && (startIndex + limit) < combinedList.length) {
+            // Se retornou o número máximo de itens, o next timestamp é o do último item retornado
+            newLastVisibleTimestamp = finalResults[finalResults.length - 1].data * 1000; // Converte segundos para milissegundos
+        }
         
         res.status(200).json({
             data: finalResults,
             lastVisibleTimestamp: newLastVisibleTimestamp
         });
+
     } catch (error) {
         console.error("Erro ao buscar dados de admin:", error);
         res.status(500).json({ error: "Não foi possível buscar os dados." });
@@ -213,6 +233,7 @@ router.patch("/buracos/fotos/:submissionId", upload.single("foto"), async (req, 
         });
     }
 });
+
 
 // Rotas de busca (sem alterações)
 router.get("/buscar-ruas", async (req, res) => {
