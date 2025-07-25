@@ -257,7 +257,9 @@ router.get("/buscar-bairros", async (req, res) => {
     }
 });
 
-// Rota para salvar registros de buracos (sem alterações)
+// ==================================================================
+// NOVO LOG ADICIONADO AQUI
+// ==================================================================
 router.post("/salvar", async (req, res) => {
     try {
         const { rua, bairro, buracos, condicaoTempo, observacao, username, dataLancamento } = req.body;
@@ -282,6 +284,11 @@ router.post("/salvar", async (req, res) => {
             batch.set(novoBuracoRef, dadosParaFirestore);
         }
         await batch.commit();
+        
+        // Log solicitado pelo usuário
+        const dataFormatada = dataDoRegistro.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo" });
+        console.log(`Lançamento de ${buracos.length} buraco(s) por ${username} na rua ${rua.toUpperCase().trim()} em ${dataFormatada}.`);
+
         res.json({ message: `${buracos.length} registro(s) salvo(s) com sucesso.` });
     } catch (error) {
         console.error("Erro ao salvar registro de buraco:", error);
@@ -289,42 +296,72 @@ router.post("/salvar", async (req, res) => {
     }
 });
 
-// Rota de busca de buracos (sem alterações)
+// ==================================================================
+// CORREÇÃO DE SINCRONIZAÇÃO APLICADA AQUI
+// A lógica agora é consistente com a da tela de admin.
+// ==================================================================
 router.get("/buracos", async (req, res) => {
     try {
         const { usuario, lastVisibleTimestamp } = req.query;
-        const limit = 7;
-
         let query = firestore.collection('buracos');
-        if (usuario) query = query.where('registradoPor', '==', usuario);
+        if (usuario) {
+            query = query.where('registradoPor', '==', usuario);
+        }
         
-        query = query.orderBy('registradoEm', 'desc');
+        // A busca é sempre ordenada pela data de registro descendente
+        const snapshot = await query.orderBy('registradoEm', 'desc').get();
 
-        if (lastVisibleTimestamp) {
-            const lastDate = new Date(parseInt(lastVisibleTimestamp));
-            query = query.startAfter(lastDate);
+        if (snapshot.empty) {
+            return res.status(200).json({ data: [], lastVisibleTimestamp: null });
         }
 
-        const snapshot = await query.limit(limit * 5).get();
-        
-        const visits = new Map();
+        // Agrupa todos os buracos por 'submissionId' para formar "visitas"
+        const visitsMap = new Map();
         snapshot.docs.forEach(doc => {
             const data = { id: doc.id, ...doc.data() };
             const { submissionId } = data;
-            if (!visits.has(submissionId)) {
-                visits.set(submissionId, []);
+            if (!visitsMap.has(submissionId)) {
+                visitsMap.set(submissionId, []);
             }
-            visits.get(submissionId).push(data);
+            visitsMap.get(submissionId).push(data);
         });
 
-        const paginatedVisits = Array.from(visits.values()).slice(0, limit);
+        // Converte o mapa de visitas para um array
+        let allVisits = Array.from(visitsMap.values());
+        
+        // Ordena as visitas pela data do primeiro registro de cada uma (mais recentes primeiro)
+        allVisits.sort((a, b) => {
+            const dateA = a[0].registradoEm.toMillis();
+            const dateB = b[0].registradoEm.toMillis();
+            return dateB - dateA;
+        });
+
+        const limit = 7; // Limite de visitas por página
+        let startIndex = 0;
+
+        // Lógica de paginação baseada no timestamp do último item da página anterior
+        if (lastVisibleTimestamp) {
+            const lastDateMillis = parseInt(lastVisibleTimestamp);
+            // Encontra o índice da visita que contém o timestamp do cursor
+            const lastIndex = allVisits.findIndex(visit => 
+                visit[0].registradoEm.toMillis() === lastDateMillis
+            );
+            if (lastIndex !== -1) {
+                startIndex = lastIndex + 1;
+            }
+        }
+
+        // Pega a fatia de visitas para a página atual
+        const paginatedVisits = allVisits.slice(startIndex, startIndex + limit);
+        // Achata o array de visitas para um array simples de buracos
         const buracosList = [].concat(...paginatedVisits);
 
         let newLastVisibleTimestamp = null;
-        if (visits.size > limit) {
-            const lastVisit = paginatedVisits[paginatedVisits.length - 1];
-            const lastItemOfLastVisit = lastVisit.sort((a,b) => b.registradoEm.toMillis() - a.registradoEm.toMillis())[0];
-            newLastVisibleTimestamp = lastItemOfLastVisit.registradoEm.toMillis();
+        // Se houver mais visitas a serem exibidas, define o cursor para a próxima página
+        if (startIndex + limit < allVisits.length) {
+            const lastVisitOnPage = paginatedVisits[paginatedVisits.length - 1];
+            // O cursor é o timestamp do primeiro (e mais recente) registro da última visita na página
+            newLastVisibleTimestamp = lastVisitOnPage[0].registradoEm.toMillis();
         }
 
         res.status(200).json({
@@ -337,6 +374,7 @@ router.get("/buracos", async (req, res) => {
         res.status(500).json({ error: "Não foi possível buscar os registros." });
     }
 });
+
 
 // Rota para editar data da visita (sem alterações)
 router.patch("/buracos/visita/data/:submissionId", async (req, res) => {
@@ -373,10 +411,7 @@ router.patch("/buracos/visita/data/:submissionId", async (req, res) => {
 });
 
 
-// ==================================================================
-// CORREÇÃO APLICADA AQUI: Lógica de adicionar novo buraco
-// - Garante que o novo buraco receba a data original do lançamento.
-// ==================================================================
+// Rota para adicionar novo buraco (sem alterações)
 router.post("/buracos/visita/:submissionId", async (req, res) => {
     try {
         const { submissionId } = req.params;
@@ -403,7 +438,6 @@ router.post("/buracos/visita/:submissionId", async (req, res) => {
         });
         const novoIdentificador = `TAPA BURACO ${maxId + 1}`;
         
-        // O novo buraco herda todos os dados da visita original (incluindo a data)
         const novoBuraco = { 
             ...dadosVisita, 
             identificadorBuraco: novoIdentificador, 
@@ -426,7 +460,7 @@ router.post("/buracos/visita/:submissionId", async (req, res) => {
     }
 });
 
-// Rota para deletar buraco individual (sem restrições)
+// Rota para deletar buraco individual (sem alterações)
 router.delete("/buracos/:docId", async (req, res) => {
     const { docId } = req.params;
     if (!docId) return res.status(400).json({ error: "ID do documento é obrigatório." });
@@ -465,7 +499,7 @@ router.delete("/buracos/:docId", async (req, res) => {
     }
 });
 
-// Rota para editar dimensões (sem restrições)
+// Rota para editar dimensões (sem alterações)
 router.patch("/buracos/dimensoes/:docId", async (req, res) => {
     try {
         const { docId } = req.params;
@@ -481,7 +515,7 @@ router.patch("/buracos/dimensoes/:docId", async (req, res) => {
     }
 });
 
-// Rota para deletar visita completa (sem restrições)
+// Rota para deletar visita completa (sem alterações)
 router.delete("/buracos/submission/:submissionId", async (req, res) => {
     try {
         const { submissionId } = req.params;
